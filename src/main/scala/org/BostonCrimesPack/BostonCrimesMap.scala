@@ -4,8 +4,8 @@ import org.apache.spark.sql.SparkSession
 import  org.apache.spark.sql.functions._
 import org.apache.spark.sql.expressions.Window
 
-import org.apache.log4j.Logger
-import org.apache.log4j.Level
+//import org.apache.log4j.Logger
+//import org.apache.log4j.Level
 
 
 
@@ -39,10 +39,11 @@ object BostonCrimesMap extends App {
 
 dfCrime.createOrReplaceTempView("tempViewDfCrime")
 
-val crimesMonthly = spark.sql("select DISTRICT, percentile_approx(count, array(0.5),100) as crimesMonthly" +
-  " from ( select DISTRICT, MONTH, count(*) as count from tempViewDfCrime  where DISTRICT != '' group by DISTRICT, MONTH order by DISTRICT, MONTH) " +
-  "where DISTRICT != '' group by DISTRICT order by DISTRICT")
+  val crimesMonthly = spark.sql("select distinct DISTRICT, percentile_approx(count(1), array(0.5),100) " +
+    " OVER (PARTITION BY DISTRICT, count(*) OVER (PARTITION BY DISTRICT, MONTH)) as crimesMonthly from tempViewDfCrime " +
+    "where DISTRICT != '' group by DISTRICT, MONTH order by DISTRICT")
 
+//  crimesMonthly.show()
 
   val frequentCrimeTypes = dfCrime
     .select($"DISTRICT",split($"OFFENSE_DESCRIPTION"," - ").getItem(0).as("OFFENSE_DESCRIPTION"))
